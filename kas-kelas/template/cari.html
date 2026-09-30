@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Tagihan Siswa — Kas Kelas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-page="cari">
+
+    <header style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+        <a href="/" style="font-size: 0.85rem; color: var(--text-secondary);">← Kembali</a>
+    </header>
+
+    <main class="container" style="padding-top: 1.75rem; padding-bottom: 3rem;">
+
+        <div class="profile-header">
+            <div class="profile-avatar" id="siswa-initial">?</div>
+            <div>
+                <div class="profile-name" id="siswa-nama">Memuat...</div>
+                <div class="profile-meta" id="siswa-absen"></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 1.25rem;">
+            <p class="section-title" style="margin-bottom: 1rem;">Status Pembayaran Tahun Ini</p>
+            <div class="payment-grid" id="payment-grid">
+                <div class="loading">Memuat...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <p class="section-title" style="margin-bottom: 1rem;">Riwayat Pembayaran</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bulan</th>
+                            <th>Jumlah</th>
+                            <th>Tanggal Bayar</th>
+                            <th>Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="riwayat-tbody">
+                        <tr><td colspan="4" class="loading">Memuat...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

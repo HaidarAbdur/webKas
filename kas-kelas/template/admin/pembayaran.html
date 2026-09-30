@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catat Pembayaran — Kas Kelas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-page="pembayaran">
+
+    <nav class="admin-nav">
+        <div class="admin-nav-inner">
+            <div class="nav-brand">💰 Kas Kelas</div>
+            <div class="nav-links">
+                <a href="/admin/dashboard" class="nav-link"><span>Dashboard</span></a>
+                <a href="/admin/siswa" class="nav-link"><span>Siswa</span></a>
+                <a href="/admin/pembayaran" class="nav-link active"><span>Pembayaran</span></a>
+                <a href="/admin/transaksi" class="nav-link"><span>Transaksi</span></a>
+                <a href="/admin/logout" class="nav-logout">Keluar</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="admin-content">
+        <div class="container-wide">
+
+            <div class="page-header">
+                <h1 class="page-title">Catat Pembayaran</h1>
+                <p class="page-desc">Rekam pembayaran kas siswa per bulan</p>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.75rem;">
+                <p class="section-title" style="margin-bottom: 1rem;">Form Pembayaran Baru</p>
+                <form id="form-pembayaran">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="input-group" style="grid-column: 1 / -1;">
+                            <label class="input-label" for="input-siswa">Pilih Siswa</label>
+                            <select class="select" id="input-siswa" required>
+                                <option value="">Memuat daftar siswa...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" for="input-bulan">Bulan</label>
+                            <select class="select" id="input-bulan" required>
+                                <option value="1">Januari</option>
+                                <option value="2">Februari</option>
+                                <option value="3">Maret</option>
+                                <option value="4">April</option>
+                                <option value="5">Mei</option>
+                                <option value="6">Juni</option>
+                                <option value="7">Juli</option>
+                                <option value="8">Agustus</option>
+                                <option value="9">September</option>
+                                <option value="10">Oktober</option>
+                                <option value="11">November</option>
+                                <option value="12">Desember</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" for="input-tahun">Tahun</label>
+                            <input type="number" class="input" id="input-tahun" min="2020" max="2099" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" for="input-jumlah">Jumlah Bayar (Rp)</label>
+                            <input type="number" class="input" id="input-jumlah" min="1000" step="1000" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" for="input-ket-bayar">Keterangan</label>
+                            <input type="text" class="input" id="input-ket-bayar" placeholder="Opsional...">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Simpan Pembayaran</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <p class="section-title" style="margin-bottom: 1rem;">Riwayat Pembayaran</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Siswa</th>
+                                <th>Bulan</th>
+                                <th>Jumlah</th>
+                                <th>Tanggal</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bayar-tbody">
+                            <tr><td colspan="5" class="loading">Memuat...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

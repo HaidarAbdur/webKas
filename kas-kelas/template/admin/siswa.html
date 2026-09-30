@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Siswa — Kas Kelas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-page="siswa">
+
+    <nav class="admin-nav">
+        <div class="admin-nav-inner">
+            <div class="nav-brand">💰 Kas Kelas</div>
+            <div class="nav-links">
+                <a href="/admin/dashboard" class="nav-link"><span>Dashboard</span></a>
+                <a href="/admin/siswa" class="nav-link active"><span>Siswa</span></a>
+                <a href="/admin/pembayaran" class="nav-link"><span>Pembayaran</span></a>
+                <a href="/admin/transaksi" class="nav-link"><span>Transaksi</span></a>
+                <a href="/admin/logout" class="nav-logout">Keluar</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="admin-content">
+        <div class="container-wide">
+
+            <div class="page-header">
+                <h1 class="page-title">Kelola Siswa</h1>
+                <p class="page-desc">Tambah siswa manual atau impor dari file CSV</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.75rem;">
+
+                <div class="card">
+                    <p class="section-title" style="margin-bottom: 1rem;">Tambah Siswa Manual</p>
+                    <form id="form-siswa">
+                        <div class="input-group">
+                            <label class="input-label" for="input-nama">Nama Lengkap</label>
+                            <input type="text" class="input" id="input-nama" placeholder="Nama siswa..." required>
+                        </div>
+                        <div class="input-group">
+                            <label class="input-label" for="input-absen">Nomor Absen</label>
+                            <input type="number" class="input" id="input-absen" placeholder="Opsional..." min="1">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Tambah Siswa</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <p class="section-title" style="margin-bottom: 1rem;">Impor dari CSV</p>
+                    <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.7;">
+                        File CSV harus memiliki kolom:<br>
+                        <code style="background: var(--bg-input); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.8rem;">nama</code> dan
+                        <code style="background: var(--bg-input); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.8rem;">nomor_absen</code>
+                    </p>
+                    <form id="form-csv">
+                        <div class="input-group">
+                            <label class="input-label" for="input-csv">Pilih File CSV</label>
+                            <input type="file" class="input" id="input-csv" accept=".csv" required>
+                        </div>
+                        <button type="submit" class="btn btn-secondary btn-full">Upload & Impor</button>
+                    </form>
+                </div>
+
+            </div>
+
+            <div class="card">
+                <p class="section-title" style="margin-bottom: 1rem;">Daftar Siswa</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Absen</th>
+                                <th>Nama</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="siswa-tbody">
+                            <tr><td colspan="3" class="loading">Memuat...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

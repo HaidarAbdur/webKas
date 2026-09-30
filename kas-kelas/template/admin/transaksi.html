@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaksi Kas — Kas Kelas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-page="transaksi">
+
+    <nav class="admin-nav">
+        <div class="admin-nav-inner">
+            <div class="nav-brand">💰 Kas Kelas</div>
+            <div class="nav-links">
+                <a href="/admin/dashboard" class="nav-link"><span>Dashboard</span></a>
+                <a href="/admin/siswa" class="nav-link"><span>Siswa</span></a>
+                <a href="/admin/pembayaran" class="nav-link"><span>Pembayaran</span></a>
+                <a href="/admin/transaksi" class="nav-link active"><span>Transaksi</span></a>
+                <a href="/admin/logout" class="nav-logout">Keluar</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="admin-content">
+        <div class="container-wide">
+
+            <div class="page-header">
+                <h1 class="page-title">Transaksi Kas</h1>
+                <p class="page-desc">Pemasukan & pengeluaran kas kelas di luar pembayaran siswa</p>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.75rem;">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="tab-masuk">Pemasukan</button>
+                    <button class="tab-btn" data-tab="tab-keluar">Pengeluaran</button>
+                </div>
+
+                <div id="tab-masuk" class="tab-content active">
+                    <form id="form-masuk">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="input-group">
+                                <label class="input-label" for="ket-masuk">Keterangan</label>
+                                <input type="text" class="input" id="ket-masuk" placeholder="Misal: Sumbangan wali murid..." required>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="jumlah-masuk">Jumlah (Rp)</label>
+                                <input type="number" class="input" id="jumlah-masuk" min="1000" step="1000" placeholder="0" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Tambah Pemasukan</button>
+                    </form>
+                </div>
+
+                <div id="tab-keluar" class="tab-content">
+                    <form id="form-keluar">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="input-group">
+                                <label class="input-label" for="ket-keluar">Keterangan</label>
+                                <input type="text" class="input" id="ket-keluar" placeholder="Misal: Beli ATK, acara kelas..." required>
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label" for="jumlah-keluar">Jumlah (Rp)</label>
+                                <input type="number" class="input" id="jumlah-keluar" min="1000" step="1000" placeholder="0" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-danger">Tambah Pengeluaran</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <p class="section-title" style="margin-bottom: 1rem;">Riwayat Transaksi</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tipe</th>
+                                <th>Keterangan</th>
+                                <th>Jumlah</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trx-tbody">
+                            <tr><td colspan="4" class="loading">Memuat...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>
