@@ -81,17 +81,21 @@ if (page === 'index') {
     async function doSearch(q) {
         searchResults.innerHTML = '<div class="loading">Mencari...</div>';
         try {
-            const { data } = await apiFetch(`/api/cari-siswa?nama=${encodeURIComponent(q)}`);
-            if (!data.length) {
+            const { ok, data } = await apiFetch(`/api/cari-siswa?nama=${encodeURIComponent(q)}`);
+            if (!ok || !Array.isArray(data)) {
+                const errMsg = (data && data.message) ? data.message : 'Terjadi kesalahan koneksi server database';
+                searchResults.innerHTML = `<div class="search-empty" style="color: var(--danger, #ef4444);">⚠️ ${errMsg}</div>`;
+                return;
+            }
+            if (data.lenght === 0) {
                 searchResults.innerHTML = '<div class="search-empty">Nama tidak ditemukan di database</div>';
                 return;
             }
             searchResults.innerHTML = data.map(s => `
-                <a href="/cari?id=${s.id}" class="result-item">
-                    <span class="result-name">${s.nama}</span>
-                    <span class="result-absen">Absen ${s.nomor_absen || '-'}</span>
-                </a>
-            `).join('');
+                <a href="/cari?id=${s.id}" class="result-item" >
+                   <span class="result-name">${s.nama}</span>
+                   <span class="result-absen">Absen ${s.nomor_absen || '-'}</span>
+                </a>`).join('');
         } catch {
             searchResults.innerHTML = '<div class="search-empty">Terjadi kesalahan. Coba lagi.</div>';
         }

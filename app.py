@@ -1,12 +1,10 @@
+
 import os
 import csv
 import io
-# pyrefly: ignore [missing-import]
 from flask import Flask, render_template, request, jsonify, session, redirect
-# pyrefly: ignore [missing-import]
 from supabase import create_client
 from datetime import datetime
-# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 from functools import wraps
 
@@ -17,7 +15,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "").strip()
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key").strip()
 
-app = Flask(__name__, template_folder="template")
+app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -117,7 +115,7 @@ def api_cari_siswa():
     query = request.args.get("nama", "").strip()
     if not query:
         return jsonify([])
-    result = db("siswa").select("*").ilike("nama", f"%{query}%").eq("aktif", True).execute()
+    result = db("siswa").select("*").ilike("nama", f"%{query}%").execute()
     return jsonify(to_list(result))
 
 @app.route("/api/tagihan-siswa/<int:siswa_id>")
@@ -148,19 +146,25 @@ def api_dashboard_stats():
     total_bayar = sum(r["jumlah"] for r in bayar.data or [])
     saldo = (total_masuk + total_bayar) - total_keluar
 
-    semua_siswa = db("siswa").select("id").eq("aktif", True).execute()
+    semua_siswa = db("siswa").select("id").execute()
     total_siswa = len(semua_siswa.data or [])
 
-    sudah_bayar = db("pembayaran").select("siswa_id").eq("bulan", bulan_ini).eq("tahun", tahun_ini).execute()
-    jumlah_lunas = len(sudah_bayar.data or [])
+    get_tagihan_siswa = db("pembayaran").select("siswa_id, jumlah").eq("bulan", bulan_ini).eq("tahun", tahun_ini).execute().data or []
+    total_per_siswa = {}
+    for item in get_tagihan_siswa:
+        s_id = item['siswa_id']
+        total_per_siswa[s_id] = total_per_siswa.get(s_id, 0) + item['jumlah']
+
+    total_siswa_lunas = sum(1 for total in total_per_siswa.values()if total >=12000)
+
 
     return jsonify({
         "saldo": saldo,
         "total_masuk": total_masuk + total_bayar,
         "total_keluar": total_keluar,
         "total_siswa": total_siswa,
-        "lunas_bulan_ini": jumlah_lunas,
-        "belum_bayar_bulan_ini": total_siswa - jumlah_lunas,
+        "lunas_bulan_ini": total_siswa_lunas,
+        "belum_bayar_bulan_ini": total_siswa - total_siswa_lunas,
         "bulan_ini": bulan_ini,
         "tahun_ini": tahun_ini
     })
@@ -236,21 +240,47 @@ def api_catat_pembayaran():
     bulan = data.get("bulan")
     tahun = data.get("tahun")
     jumlah = data.get("jumlah")
-
+    
     if not all([siswa_id, bulan, tahun, jumlah]):
-        return jsonify({"status": "error", "message": "Semua field wajib diisi"}), 400
+        return jsonify({"status": "error", "message": "Data tidak lengkap"}), 400
 
-    cek = db("pembayaran").select("id").eq("siswa_id", siswa_id).eq("bulan", bulan).eq("tahun", tahun).execute()
-    if cek.data:
-        return jsonify({"status": "error", "message": "Siswa ini sudah tercatat bayar untuk bulan tersebut"}), 409
+    siswa_id = int(siswa_id)
+    sisa_bayar = int(jumlah)
+    curr_bulan = int(bulan)
+    curr_tahun = int(tahun)
+    target_bulanan = 12000
+    
+    while sisa_bayar > 0:
+      cek = db("pembayaran").select("jumlah").eq("siswa_id", int(siswa_id)).eq("bulan", curr_bulan).eq("tahun", curr_tahun).execute()
 
-    db("pembayaran").insert({
+      terbayar = sum([item['jumlah'] for item in cek.data] if cek.data else [])
+      kurang = target_bulanan-terbayar
+
+      if kurang <= 0:
+        curr_bulan += 1
+        if curr_bulan > 12:
+            curr_bulan = 1
+            curr_tahun += 1
+        continue
+
+      nominal_alokasi = min(sisa_bayar, kurang)
+
+      db("pembayaran").insert({
         "siswa_id": int(siswa_id),
-        "bulan": int(bulan),
-        "tahun": int(tahun),
-        "jumlah": int(jumlah),
+        "bulan": curr_bulan,
+        "tahun": curr_tahun,
+        "jumlah": nominal_alokasi,
         "keterangan": data.get("keterangan", "")
-    }).execute()
+      }).execute()
+
+      sisa_bayar -= nominal_alokasi
+    
+      if sisa_bayar > 0:
+        curr_bulan += 1
+        if curr_bulan > 12:
+            curr_bulan = 1
+            curr_tahun += 1
+
     return jsonify({"status": "success", "message": "Pembayaran berhasil dicatat"}), 201
 
 @app.route("/api/admin/pembayaran/<int:bayar_id>", methods=["DELETE"])
@@ -268,13 +298,29 @@ def api_belum_bayar():
     bulan = request.args.get("bulan", now.month)
     tahun = request.args.get("tahun", now.year)
 
-    semua = db("siswa").select("id, nama, nomor_absen").eq("aktif", True).order("nomor_absen").execute()
-    sudah = db("pembayaran").select("siswa_id").eq("bulan", int(bulan)).eq("tahun", int(tahun)).execute()
+    semua_siswa = db("siswa").select("id, nama, nomor_absen").execute().data or []
+    pembayaran = db("pembayaran").select("siswa_id, jumlah").eq("bulan", int(bulan)).eq("tahun", int(tahun)).execute().data or []
 
-    id_sudah_bayar = {r["siswa_id"] for r in sudah.data or []}
-    belum = [s for s in (semua.data or []) if s["id"] not in id_sudah_bayar]
-    return jsonify(belum)
-
+    total_bayar = {}
+    for bayar in pembayaran:
+        s_id = bayar['siswa_id']
+        total_bayar[s_id] = total_bayar.get(s_id, 0) + bayar['jumlah']
+    
+    target = 12000
+    siswa_belum_bayar = []
+        
+    for siswa in semua_siswa:
+        total = total_bayar.get(siswa["id"], 0)
+        if total < target:
+            siswa_belum_bayar.append({
+                'id': siswa['id'],
+                'nama': siswa['nama'],
+                'nomor_absen': siswa['nomor_absen'],
+                'total_pembayaran': total,
+                'sisa_bayar': target - total
+            })
+    
+    return jsonify({'status': 'success', 'data': siswa_belum_bayar}), 200
 
 @app.route("/api/admin/transaksi", methods=["GET"])
 @require_admin
