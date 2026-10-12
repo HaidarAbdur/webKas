@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Admin — Kas Kelas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
 
     <div class="login-page">
         <div class="login-card">
             <div class="login-logo">
                 <div class="login-logo-icon">💰</div>
-                <div class="login-title">Panel Admin</div>
-                <div class="login-subtitle">Kas Kelas XII TJKT 1</div>
+                <div class="login-title">Admin</div>
+                <div class="login-subtitle">Kas Kelas XI TJKT 1</div>
             </div>
 
             {% if error %}
@@ -23,15 +25,8 @@
             <form method="POST" action="/admin/login">
                 <div class="input-group">
                     <label class="input-label" for="password">Password Admin</label>
-                    <input
-                        type="password"
-                        class="input"
-                        id="password"
-                        name="password"
-                        placeholder="Masukkan password..."
-                        required
-                        autofocus
-                    >
+                    <input type="password" class="input" id="password" name="password"
+                        placeholder="Masukkan password..." required autofocus>
                 </div>
                 <button type="submit" class="btn btn-primary btn-full" style="margin-top: 0.5rem;">
                     Masuk →
@@ -43,4 +38,5 @@
     </div>
 
 </body>
+
 </html>

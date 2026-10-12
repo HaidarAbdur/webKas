@@ -8,13 +8,24 @@
 </head>
 <body data-page="cari">
 
-    <header style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
-        <a href="/" style="font-size: 0.85rem; color: var(--text-secondary);">← Kembali</a>
+    <!-- Header Biru Muda Selaras -->
+    <header class="main-header">
+        <div class="header-inner">
+            <div class="header-left">
+                <a href="/" class="btn-back">← Kembali</a>
+            </div>
+            <div class="header-center">
+                <span class="header-class">Tagihan Siswa</span>
+            </div>
+            <div class="header-right">
+                <span class="header-brand-sub">XI TJKT 1</span>
+            </div>
+        </div>
     </header>
 
-    <main class="container" style="padding-top: 1.75rem; padding-bottom: 3rem;">
+    <main class="main-content container">
 
-        <div class="profile-header">
+        <div class="profile-header card" style="margin-bottom: 1.25rem;">
             <div class="profile-avatar" id="siswa-initial">?</div>
             <div>
                 <div class="profile-name" id="siswa-nama">Memuat...</div>
@@ -49,6 +60,12 @@
         </div>
 
     </main>
+
+    <footer class="main-footer">
+        <div class="footer-inner container">
+            <p>© Kas Kelas XI TJKT 1</p>
+        </div>
+    </footer>
 
     <div class="toast" id="toast"></div>
     <script src="{{ url_for('static', filename='main.js') }}"></script>

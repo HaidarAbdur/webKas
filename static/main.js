@@ -1,6 +1,12 @@
 const BULAN = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const BULAN_FULL = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
+function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+}
+
 function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 }
@@ -87,14 +93,14 @@ if (page === 'index') {
                 searchResults.innerHTML = `<div class="search-empty" style="color: var(--danger, #ef4444);">⚠️ ${errMsg}</div>`;
                 return;
             }
-            if (data.lenght === 0) {
+            if (data.length === 0) {
                 searchResults.innerHTML = '<div class="search-empty">Nama tidak ditemukan di database</div>';
                 return;
             }
             searchResults.innerHTML = data.map(s => `
                 <a href="/cari?id=${s.id}" class="result-item" >
-                   <span class="result-name">${s.nama}</span>
-                   <span class="result-absen">Absen ${s.nomor_absen || '-'}</span>
+                   <span class="result-name">${escapeHtml(s.nama)}</span>
+                   <span class="result-absen">Absen ${escapeHtml(s.nomor_absen || '-')}</span>
                 </a>`).join('');
         } catch {
             searchResults.innerHTML = '<div class="search-empty">Terjadi kesalahan. Coba lagi.</div>';
@@ -126,16 +132,50 @@ if (page === 'cari') {
 
             const now = new Date();
             const tahunIni = now.getFullYear();
-            const bayarSet = new Set(pembayaran.filter(p => p.tahun === tahunIni).map(p => p.bulan));
+            const bayarBulan = {};
+            pembayaran.filter(p => p.tahun === tahunIni).forEach(p => { bayarBulan[p.bulan] = (bayarBulan[p.bulan] || 0) + Number(p.jumlah) });
+
+
 
             const grid = document.getElementById('payment-grid');
             grid.innerHTML = '';
             for (let b = 1; b <= 12; b++) {
-                const lunas = bayarSet.has(b);
+                const totalUang = bayarBulan[b] || 0;
+                const terbayarM1 = Math.min(totalUang, 3000);
+                const kurangM1 = 3000 - terbayarM1
+                const sisaM1 = Math.max(0, totalUang - 3000);
+                const terbayarM2 = Math.min(sisaM1, 3000);
+                const kurangM2 = 3000 - terbayarM2;
+                const sisaM2 = Math.max(0, totalUang - 6000);
+                const terbayarM3 = Math.min(sisaM2, 3000);
+                const kurangM3 = 3000 - terbayarM3;
+                const sisaM3 = Math.max(0, totalUang - 9000);
+                const terbayarM4 = Math.min(sisaM3, 3000);
+                const kurangM4 = 3000 - terbayarM4;
+                const sisaM4 = Math.max(0, totalUang - 12000);
+
+
+                let statusClass = 'belum';
+                let icon = '❌';
+                let infoTeks = 'Belum bayar';
+
+                if (totalUang >= 12000) {
+                    statusClass = 'lunas';
+                    icon = '✅';
+                    infoTeks = 'Lunas (4 mg)';
+                } else if (totalUang > 0) {
+                    statusClass = 'cicil';
+                    icon = '⚠️';
+                    const sisaKurang = 12000 - totalUang;
+                    infoTeks = `Baru bayar: ${formatRupiah(totalUang)}<br><span style="color:var(--danger)">Kurang: ${formatRupiah(sisaKurang)}</span>`;
+                }
                 grid.innerHTML += `
-                    <div class="payment-month ${lunas ? 'lunas' : 'belum'}">
+                    <div class="payment-month ${statusClass}">
                         <span class="month-name">${BULAN[b]}</span>
-                        <span class="month-icon">${lunas ? '✅' : '❌'}</span>
+                        <span class="month-icon">${icon}</span>
+                        <span class="month-detail" style="font-size:0.7rem; display:block; text-align:center;">
+                        ${infoTeks}
+                        </span>
                     </div>
                 `;
             }
@@ -148,13 +188,13 @@ if (page === 'cari') {
                     <tr>
                         <td>${BULAN_FULL[p.bulan]} ${p.tahun}</td>
                         <td>${formatRupiah(p.jumlah)}</td>
-                        <td>${formatTanggal(p.tanggal_bayar)}</td>
-                        <td>${p.keterangan || '-'}</td>
+                        <td>${escapeHtml(formatTanggal(p.tanggal_bayar))}</td>
+                        <td>${escapeHtml(p.keterangan || '-')}</td>
                     </tr>
                 `).join('');
             }
-        } catch {
-            window.location.href = '/';
+        } catch (err) {
+            console.error("Gagal load tagihan", err);
         }
     }
 }
@@ -178,14 +218,15 @@ if (page === 'dashboard') {
     async function loadBelumBayar(bulan, tahun) {
         const { data } = await apiFetch(`/api/admin/belum-bayar?bulan=${bulan}&tahun=${tahun}`);
         const tbody = document.getElementById('belum-tbody');
-        if (!data.length) {
+        const list = Array.isArray(data) ? data : (data && Array.isArray(data.data) ? data.data : []);
+        if (!list.length) {
             tbody.innerHTML = '<tr><td colspan="2" class="search-empty">🎉 Semua siswa sudah lunas!</td></tr>';
             return;
         }
-        tbody.innerHTML = data.map(s => `
+        tbody.innerHTML = list.map(s => `
             <tr>
-                <td>${s.nomor_absen || '-'}</td>
-                <td>${s.nama}</td>
+                <td>${escapeHtml(s.nomor_absen || '-')}</td>
+                <td>${escapeHtml(s.nama)}</td>
             </tr>
         `).join('');
     }
@@ -193,6 +234,8 @@ if (page === 'dashboard') {
 
 
 if (page === 'siswa') {
+    let cacheSiswa = [];
+
     loadSiswa();
 
     async function loadSiswa() {
@@ -202,19 +245,22 @@ if (page === 'siswa') {
             tbody.innerHTML = '<tr><td colspan="3" class="search-empty">Belum ada data siswa</td></tr>';
             return;
         }
+        cacheSiswa = data;
         tbody.innerHTML = data.map(s => `
             <tr>
-                <td>${s.nomor_absen || '-'}</td>
-                <td>${s.nama}</td>
+                <td>${escapeHtml(s.nomor_absen || '-')}</td>
+                <td>${escapeHtml(s.nama)}</td>
                 <td>
-                    <button class="btn btn-danger btn-sm" onclick="hapusSiswa(${s.id}, '${s.nama}')">Hapus</button>
+                    <button class="btn btn-danger btn-sm" onclick="hapusSiswa(${s.id})">Hapus</button>
                 </td>
             </tr>
         `).join('');
     }
 
-    window.hapusSiswa = async function (id, nama) {
-        if (!confirmDelete(`Hapus siswa "${nama}"? Semua riwayat pembayarannya juga akan ikut terhapus.`)) return;
+    window.hapusSiswa = async function (id) {
+        const target = cacheSiswa.find(s => s.id === id);
+        const nama = target ? target.nama : 'siswa ini';
+        if (!confirmDelete(`Hapus siswa "${escapeHtml(nama)}"? Semua riwayat pembayarannya juga akan ikut terhapus.`)) return;
         const { ok, data } = await deleteReq(`/api/admin/siswa/${id}`);
         showToast(data.message, ok ? 'success' : 'error');
         if (ok) loadSiswa();
@@ -242,7 +288,6 @@ if (page === 'siswa') {
     });
 }
 
-
 if (page === 'pembayaran') {
     loadAllSiswaOptions();
     loadRiwayatPembayaran();
@@ -250,13 +295,13 @@ if (page === 'pembayaran') {
     const now = new Date();
     document.getElementById('input-bulan').value = now.getMonth() + 1;
     document.getElementById('input-tahun').value = now.getFullYear();
-    document.getElementById('input-jumlah').value = 12000;
+    document.getElementById('input-jumlah').value = 3000;
 
     async function loadAllSiswaOptions() {
         const { data } = await apiFetch('/api/admin/siswa');
         const sel = document.getElementById('input-siswa');
         sel.innerHTML = '<option value="">-- Pilih Siswa --</option>' +
-            data.map(s => `<option value="${s.id}">${s.nomor_absen ? `[${s.nomor_absen}] ` : ''}${s.nama}</option>`).join('');
+            data.map(s => `<option value="${s.id}">${s.nomor_absen ? `[${escapeHtml(s.nomor_absen)}] ` : ''}${escapeHtml(s.nama)}</option>`).join('');
     }
 
     async function loadRiwayatPembayaran() {
@@ -268,10 +313,10 @@ if (page === 'pembayaran') {
         }
         tbody.innerHTML = data.map(p => `
             <tr>
-                <td>${p.siswa?.nama || '-'}</td>
+                <td>${escapeHtml(p.siswa?.nama || '-')}</td>
                 <td>${BULAN_FULL[p.bulan]} ${p.tahun}</td>
                 <td>${formatRupiah(p.jumlah)}</td>
-                <td>${formatTanggal(p.tanggal_bayar)}</td>
+                <td>${escapeHtml(formatTanggal(p.tanggal_bayar))}</td>
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="hapusPembayaran(${p.id})">Hapus</button>
                 </td>
@@ -324,7 +369,7 @@ if (page === 'transaksi') {
         tbody.innerHTML = data.map(t => `
             <tr>
                 <td><span class="badge ${t.tipe === 'pemasukan' ? 'badge-success' : 'badge-danger'}">${t.tipe}</span></td>
-                <td>${t.keterangan}</td>
+                <td>${escapeHtml(t.keterangan)}</td>
                 <td>${formatRupiah(t.jumlah)}</td>
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="hapusTrx(${t.id})">Hapus</button>
@@ -355,4 +400,34 @@ if (page === 'transaksi') {
             if (ok) { this.reset(); loadTransaksi(); }
         });
     });
+}
+
+if (page === 'riwayat') {
+    loadRiwayatPengeluaran();
+
+    async function loadRiwayatPengeluaran() {
+        const tbody = document.getElementById('pengeluaran-tbody');
+        const totalEl = document.getElementById('total-pengeluaran-val');
+        try {
+            const { ok, data } = await apiFetch('/api/pengeluaran');
+            if (!ok || !Array.isArray(data) || !data.length) {
+                tbody.innerHTML = '<tr><td colspan="3" class="search-empty">Belum ada riwayat pengeluaran kas</td></tr>';
+                if (totalEl) totalEl.textContent = formatRupiah(0);
+                return;
+            }
+
+            const total = data.reduce((acc, curr) => acc + (Number(curr.jumlah) || 0), 0);
+            if (totalEl) totalEl.textContent = formatRupiah(total);
+
+            tbody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${formatTanggal(item.tanggal)}</td>
+                    <td>${escapeHtml(item.keterangan || '-')}</td>
+                    <td class="nominal-keluar">${formatRupiah(item.jumlah)}</td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="3" class="search-empty">Gagal memuat data pengeluaran</td></tr>';
+        }
+    }
 }

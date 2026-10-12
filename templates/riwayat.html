@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Riwayat Pengeluaran Kas Kelas XI TJKT 1 — Transparan dan Terbuka.">
+    <title>Riwayat Pengeluaran — Kas Kelas XI TJKT 1</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body data-page="riwayat">
+
+    <!-- Header Biru Konsisten -->
+    <header class="main-header">
+        <div class="header-inner">
+            <div class="header-left">
+                <span class="header-brand">KAS KELAS</span>
+            </div>
+            <div class="header-center">
+                <span class="header-class">XI TJKT 1</span>
+            </div>
+            <div class="header-right">
+                <a href="/admin/login" class="btn-admin-header">Admin</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Konten Utama Riwayat Pengeluaran -->
+    <main class="main-content container">
+
+        <!-- Kartu Ringkasan Total Pengeluaran -->
+        <div class="card summary-pengeluaran-card" style="margin-bottom: 1.25rem;">
+            <div class="summary-pengeluaran-info">
+                <span class="summary-pengeluaran-label">Total Pengeluaran Kas</span>
+                <span class="summary-pengeluaran-value" id="total-pengeluaran-val">Memuat...</span>
+            </div>
+            <span class="badge badge-danger">Pengeluaran</span>
+        </div>
+
+        <!-- Tabel Riwayat Pengeluaran (Read-Only) -->
+        <div class="card">
+            <div class="card-header-flex">
+                <p class="section-title">Daftar Transaksi Pengeluaran</p>
+                <span class="read-only-badge">🔒 Read Only</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 25%;">Tanggal</th>
+                            <th>Keperluan / Keterangan</th>
+                            <th style="width: 28%; text-align: right;">Jumlah</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pengeluaran-tbody">
+                        <tr>
+                            <td colspan="3" class="loading">Memuat riwayat pengeluaran...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Navigasi Tab Pengguna (Di Bawah, Tepat Di Atas Footer) -->
+        <nav class="user-nav">
+            <a href="/" class="user-nav-link">🏠 Beranda</a>
+            <a href="/riwayat" class="user-nav-link active">📋 Riwayat Pengeluaran</a>
+        </nav>
+
+    </main>
+
+    <!-- Footer Konsisten -->
+    <footer class="main-footer">
+        <div class="footer-inner container">
+            <p>© Kas Kelas XI TJKT 1<br>Develop by Anonimous</p>
+        </div>
+    </footer>
+
+    <div class="toast" id="toast"></div>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+
+</html>

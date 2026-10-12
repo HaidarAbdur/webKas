@@ -1,55 +1,85 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Web Kas Kelas — Lihat saldo kas dan cek tagihan pembayaran kelas kamu.">
-    <title>Kas Kelas — Beranda</title>
+    <meta name="description" content="Web Kas Kelas — Lihat saldo kas dan cek tagihan pembayaran kelas XI TJKT 1.">
+    <title>Kas Kelas — XI TJKT 1</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body data-page="index">
 
-    <header class="hero-header">
-        <p class="hero-subtitle">Kas Kelas</p>
-        <h1 class="hero-title">XII TJKT 1</h1>
-        <p class="hero-desc">Tagihan Rp 3.000/minggu · Rp 12.000/bulan</p>
-
-        <div class="saldo-display">
-            <div class="saldo-label">Saldo Kas Terkini</div>
-            <div class="saldo-amount" id="saldo-amount">Memuat...</div>
-            <div class="saldo-sub">
-                <div class="saldo-sub-item">
-                    <span class="saldo-sub-label">Total Masuk</span>
-                    <span class="saldo-sub-value in" id="total-masuk">—</span>
-                </div>
-                <div class="saldo-sub-item">
-                    <span class="saldo-sub-label">Total Keluar</span>
-                    <span class="saldo-sub-value out" id="total-keluar">—</span>
-                </div>
+    <!-- Header Biru Muda Normal -->
+    <header class="main-header">
+        <div class="header-inner">
+            <div class="header-left">
+                <span class="header-brand">KAS KELAS</span>
+            </div>
+            <div class="header-center">
+                <span class="header-class">XI TJKT 1</span>
+            </div>
+            <div class="header-right">
+                <a href="/admin/login" class="btn-admin-header">Admin</a>
             </div>
         </div>
     </header>
 
-    <main class="container">
-        <section class="search-section">
-            <p class="section-title">Cek Tagihan Kamu</p>
-            <div class="search-wrap">
-                <span class="search-icon">🔍</span>
-                <input
-                    type="text"
-                    class="input search-input"
-                    id="search-input"
-                    placeholder="Ketik nama kamu..."
-                    autocomplete="off"
-                >
+    <!-- Body Utama (Latar Abu-abu Muda) -->
+    <main class="main-content container">
+
+        <!-- Teks Informasi Tagihan -->
+        <div class="tagihan-banner">
+            <p class="tagihan-text">📌 Tagihan: Rp 3.000/minggu — Rp 12.000/bulan</p>
+        </div>
+
+        <!-- 1 Grid Berisi: Kas Sekarang (Biru), Uang Masuk (Hijau), Uang Keluar (Merah) -->
+        <div class="kas-grid">
+            <div class="kas-card card-saldo">
+                <div class="kas-label">Total Kas Sekarang</div>
+                <div class="kas-value" id="saldo-amount">Memuat...</div>
             </div>
-            <div class="search-results" id="search-results"></div>
+            <div class="kas-card card-masuk">
+                <div class="kas-label">Total Uang Masuk</div>
+                <div class="kas-value" id="total-masuk">—</div>
+            </div>
+            <div class="kas-card card-keluar">
+                <div class="kas-label">Total Uang Keluar</div>
+                <div class="kas-value" id="total-keluar">—</div>
+            </div>
+        </div>
+
+        <!-- Bagian Pencarian Tagihan Siswa -->
+        <section class="search-section">
+            <div class="search-box card">
+                <label for="search-input" class="search-label">Cek Tagihan Siswa</label>
+                <div class="search-input-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="input search-input" id="search-input" placeholder="Ketik nama siswa..."
+                        autocomplete="off">
+                </div>
+                <div class="search-results" id="search-results"></div>
+            </div>
         </section>
+
+        <!-- Navigasi Tab Pengguna (Di Bawah, Tepat Di Atas Footer) -->
+        <nav class="user-nav">
+            <a href="/" class="user-nav-link active">🏠 Beranda</a>
+            <a href="/riwayat" class="user-nav-link">📋 Riwayat Pengeluaran</a>
+        </nav>
+
     </main>
 
-    <a href="/admin/login" class="footer-link">Panel Admin →</a>
+    <!-- Footer Abu-abu Muda -->
+    <footer class="main-footer">
+        <div class="footer-inner container">
+            <p>© Kas Kelas XI TJKT 1<br>Develop by Anonimous</p>
+        </div>
+    </footer>
 
     <div class="toast" id="toast"></div>
     <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
+
 </html>

@@ -1,21 +1,38 @@
-
 import os
 import csv
 import io
 from flask import Flask, render_template, request, jsonify, session, redirect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from supabase import create_client
 from datetime import datetime
 from dotenv import load_dotenv
 from functools import wraps
+import hmac
 
 load_dotenv()
+
+app = Flask(__name__)
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://"
+)
+
+app.config.update(
+         SESSION_COOKIE_HTTPONLY=True,
+         SESSION_COOKIE_SECURE=True,
+         SESSION_COOKIE_SAMESITE='Lax'
+     )
+
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "").strip()
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-secret-key").strip()
 
-app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -41,13 +58,24 @@ def handle_error(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            return jsonify({"status": "error", "message": str(e)}), 500
+            app.logger.error(f"Error internal: {e}")
+            return jsonify({"status": "error", "message": "Terjadi kesalahan server"}), 500
     return decorated
 
 
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/riwayat")
+def riwayat():
+    return render_template("riwayat.html")
+ 
+@app.route("/api/pengeluaran")
+@handle_error
+def api_pengeluaran():
+    result = db('transaksi_kas').select("*").eq("tipe","pengeluaran").order("tanggal", desc=True).execute()
+    return jsonify(to_list(result))
 
 @app.route("/cari")
 def cari():
@@ -58,9 +86,10 @@ def admin_login_page():
     return render_template("admin/login.html")
 
 @app.route("/admin/login", methods=["POST"])
+@limiter.limit("3 per minute")
 def admin_login_post():
     password = request.form.get("password", "")
-    if password == ADMIN_PASSWORD:
+    if ADMIN_PASSWORD and hmac.compare_digest(password, ADMIN_PASSWORD):
         session["is_admin"] = True
         return redirect("/admin/dashboard")
     return render_template("admin/login.html", error="Password salah!")
@@ -243,14 +272,23 @@ def api_catat_pembayaran():
     
     if not all([siswa_id, bulan, tahun, jumlah]):
         return jsonify({"status": "error", "message": "Data tidak lengkap"}), 400
+    try:
+        siswa_id = int(siswa_id)
+        sisa_bayar = int(jumlah)
+        curr_bulan = int(bulan)
+        curr_tahun = int(tahun)
+        target_bulanan = 12000
+    except (ValueError, TypeError):
+        return jsonify({"status": "error", "message": "Format data tidak valid."}), 400
 
-    siswa_id = int(siswa_id)
-    sisa_bayar = int(jumlah)
-    curr_bulan = int(bulan)
-    curr_tahun = int(tahun)
-    target_bulanan = 12000
-    
-    while sisa_bayar > 0:
+    if not ( 1<= curr_bulan <=12 ):
+        return jsonify({"status": "error", "message": "Bulan harus diantara 1 sampai 12."}), 400
+    if sisa_bayar <= 0 or sisa_bayar > 144000:
+        return jsonify({"status": "error", "message": "Jumlah harus diantara 1 sampai 144000."}), 400
+    iterasi = 0
+    max_iterasi = 24
+    while sisa_bayar > 0 and iterasi < max_iterasi:
+      iterasi += 1
       cek = db("pembayaran").select("jumlah").eq("siswa_id", int(siswa_id)).eq("bulan", curr_bulan).eq("tahun", curr_tahun).execute()
 
       terbayar = sum([item['jumlah'] for item in cek.data] if cek.data else [])
@@ -281,7 +319,7 @@ def api_catat_pembayaran():
             curr_bulan = 1
             curr_tahun += 1
 
-    return jsonify({"status": "success", "message": "Pembayaran berhasil dicatat"}), 201
+    return jsonify({"status": "success", "message": f"Pembayaran sebesar Rp.{jumlah} berhasil dicatat"}), 201
 
 @app.route("/api/admin/pembayaran/<int:bayar_id>", methods=["DELETE"])
 @require_admin
@@ -320,7 +358,7 @@ def api_belum_bayar():
                 'sisa_bayar': target - total
             })
     
-    return jsonify({'status': 'success', 'data': siswa_belum_bayar}), 200
+    return jsonify(siswa_belum_bayar), 200
 
 @app.route("/api/admin/transaksi", methods=["GET"])
 @require_admin
