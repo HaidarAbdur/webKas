@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detail Tagihan Siswa — Kas Kelas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body data-page="cari">
 
     <!-- Header Biru Muda Selaras -->
@@ -53,7 +55,9 @@
                         </tr>
                     </thead>
                     <tbody id="riwayat-tbody">
-                        <tr><td colspan="4" class="loading">Memuat...</td></tr>
+                        <tr>
+                            <td colspan="4" class="loading">Memuat...</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -63,11 +67,12 @@
 
     <footer class="main-footer">
         <div class="footer-inner container">
-            <p>© Kas Kelas XI TJKT 1</p>
+            <p>© Kas Kelas XI TJKT 1<br>Develop by Anonimous</p>
         </div>
     </footer>
 
     <div class="toast" id="toast"></div>
     <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
+
 </html>
