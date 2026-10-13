@@ -285,40 +285,45 @@ def api_catat_pembayaran():
         return jsonify({"status": "error", "message": "Bulan harus diantara 1 sampai 12."}), 400
     if sisa_bayar <= 0 or sisa_bayar > 144000:
         return jsonify({"status": "error", "message": "Jumlah harus diantara 1 sampai 144000."}), 400
-    iterasi = 0
+
     max_iterasi = 24
-    while sisa_bayar > 0 and iterasi < max_iterasi:
-      iterasi += 1
-      cek = db("pembayaran").select("jumlah").eq("siswa_id", int(siswa_id)).eq("bulan", curr_bulan).eq("tahun", curr_tahun).execute()
-
-      terbayar = sum([item['jumlah'] for item in cek.data] if cek.data else [])
-      kurang = target_bulanan-terbayar
-
-      if kurang <= 0:
-        curr_bulan += 1
-        if curr_bulan > 12:
-            curr_bulan = 1
-            curr_tahun += 1
-        continue
-
-      nominal_alokasi = min(sisa_bayar, kurang)
-
-      db("pembayaran").insert({
-        "siswa_id": int(siswa_id),
-        "bulan": curr_bulan,
-        "tahun": curr_tahun,
-        "jumlah": nominal_alokasi,
-        "keterangan": data.get("keterangan", "")
-      }).execute()
-
-      sisa_bayar -= nominal_alokasi
-    
-      if sisa_bayar > 0:
-        curr_bulan += 1
-        if curr_bulan > 12:
-            curr_bulan = 1
-            curr_tahun += 1
-
+    bulan_range = []
+    tmp_bulan, tmp_tahun = curr_bulan, curr_tahun
+    for _ in range(max_iterasi):
+        bulan_range.append({"bulan": tmp_bulan, "tahun": tmp_tahun})
+        tmp_bulan += 1
+        if tmp_bulan > 12:
+            tmp_bulan = 1
+            tmp_tahun += 1
+    existing_res = db("pembayaran").select("bulan, tahun, jumlah") \
+        .eq("siswa_id", siswa_id) \
+        .gte("tahun", curr_tahun) \
+        .lte("tahun", tmp_tahun) \
+        .execute()
+    terbayar_map = {}
+    for item in (existing_res.data or []):
+        key = (item["bulan"], item["tahun"])
+        terbayar_map[key] = terbayar_map.get(key, 0) + item["jumlah"]
+    records_to_insert = []
+    for entry in bulan_range:
+        if sisa_bayar <= 0:
+            break
+        b, t = entry["bulan"], entry["tahun"]
+        terbayar = terbayar_map.get((b, t), 0)
+        kurang = target_bulanan - terbayar
+        if kurang <= 0:
+            continue
+        nominal_alokasi = min(sisa_bayar, kurang)
+        records_to_insert.append({
+            "siswa_id": siswa_id,
+            "bulan": b,
+            "tahun": t,
+            "jumlah": nominal_alokasi,
+            "keterangan": data.get("keterangan", "")
+        })
+        sisa_bayar -= nominal_alokasi
+    if records_to_insert:
+        db("pembayaran").insert(records_to_insert).execute()
     return jsonify({"status": "success", "message": f"Pembayaran sebesar Rp.{jumlah} berhasil dicatat"}), 201
 
 @app.route("/api/admin/pembayaran/<int:bayar_id>", methods=["DELETE"])

@@ -204,15 +204,20 @@ if (page === 'dashboard') {
     loadStats();
 
     async function loadStats() {
-        const { data } = await apiFetch('/api/admin/stats');
+        try {
+            const { ok, data } = await apiFetch('/api/admin/stats');
+            if (!ok) throw new Error(data?.message || 'Gagal memuat data');
+            document.getElementById('stat-saldo').textContent = formatRupiah(data.saldo);
+            document.getElementById('stat-siswa').textContent = data.total_siswa;
+            document.getElementById('stat-lunas').textContent = data.lunas_bulan_ini;
+            document.getElementById('stat-belum').textContent = data.belum_bayar_bulan_ini;
+            document.getElementById('bulan-label').textContent = `${BULAN_FULL[data.bulan_ini]} ${data.tahun_ini}`;
 
-        document.getElementById('stat-saldo').textContent = formatRupiah(data.saldo);
-        document.getElementById('stat-siswa').textContent = data.total_siswa;
-        document.getElementById('stat-lunas').textContent = data.lunas_bulan_ini;
-        document.getElementById('stat-belum').textContent = data.belum_bayar_bulan_ini;
-        document.getElementById('bulan-label').textContent = `${BULAN_FULL[data.bulan_ini]} ${data.tahun_ini}`;
-
-        loadBelumBayar(data.bulan_ini, data.tahun_ini);
+            loadBelumBayar(data.bulan_ini, data.tahun_ini);
+        } catch (err) {
+            console.error('loadStats error:', err);
+            showToast('Gagal memuat statistik dashboard', 'error');
+        }
     }
 
     async function loadBelumBayar(bulan, tahun) {
@@ -239,22 +244,27 @@ if (page === 'siswa') {
     loadSiswa();
 
     async function loadSiswa() {
-        const { data } = await apiFetch('/api/admin/siswa');
         const tbody = document.getElementById('siswa-tbody');
-        if (!data.length) {
-            tbody.innerHTML = '<tr><td colspan="3" class="search-empty">Belum ada data siswa</td></tr>';
-            return;
+        try {
+            const { ok, data } = await apiFetch('/api/admin/siswa');
+            if (!ok || !Array.isArray(data) || !data.length) {
+                tbody.innerHTML = '<tr><td colspan="3" class="search-empty">Belum ada data siswa</td></tr>';
+                return;
+            }
+            cacheSiswa = data;
+            tbody.innerHTML = data.map(s => `
+                <tr>
+                    <td>${escapeHtml(s.nomor_absen || '-')}</td>
+                    <td>${escapeHtml(s.nama)}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="hapusSiswa(${s.id})">Hapus</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            console.error('loadSiswa error', err);
+            tbody.innerHTML = '<tr><td colspan="3" class="search-empty">Gagal memuat data siswa</td></tr>';
         }
-        cacheSiswa = data;
-        tbody.innerHTML = data.map(s => `
-            <tr>
-                <td>${escapeHtml(s.nomor_absen || '-')}</td>
-                <td>${escapeHtml(s.nama)}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm" onclick="hapusSiswa(${s.id})">Hapus</button>
-                </td>
-            </tr>
-        `).join('');
     }
 
     window.hapusSiswa = async function (id) {
@@ -266,62 +276,83 @@ if (page === 'siswa') {
         if (ok) loadSiswa();
     };
 
-    document.getElementById('form-siswa').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const nama = document.getElementById('input-nama').value.trim();
-        const absen = document.getElementById('input-absen').value.trim();
-        const { ok, data } = await postJSON('/api/admin/siswa', { nama, nomor_absen: absen || null });
-        showToast(data.message, ok ? 'success' : 'error');
-        if (ok) { this.reset(); loadSiswa(); }
-    });
+    const formSiswa = document.getElementById('form-siswa');
+    if (formSiswa) {
+        formSiswa.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const nama = document.getElementById('input-nama').value.trim();
+            const absen = document.getElementById('input-absen').value.trim();
+            const { ok, data } = await postJSON('/api/admin/siswa', { nama, nomor_absen: absen || null });
+            showToast(data.message, ok ? 'success' : 'error');
+            if (ok) { this.reset(); loadSiswa(); }
+        });
+    }
 
-    document.getElementById('form-csv').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const file = document.getElementById('input-csv').files[0];
-        if (!file) { showToast('Pilih file CSV terlebih dahulu', 'error'); return; }
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch('/api/admin/impor-siswa', { method: 'POST', body: formData });
-        const data = await res.json();
-        showToast(data.message, res.ok ? 'success' : 'error');
-        if (res.ok) { this.reset(); loadSiswa(); }
-    });
+    const formCsv = document.getElementById('form-csv');
+    if (formCsv) {
+        formCsv.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const file = document.getElementById('input-csv').files[0];
+            if (!file) { showToast('Pilih file CSV terlebih dahulu', 'error'); return; }
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/admin/impor-siswa', { method: 'POST', body: formData });
+            const data = await res.json();
+            showToast(data.message, res.ok ? 'success' : 'error');
+            if (res.ok) { this.reset(); loadSiswa(); }
+        });
+    }
 }
+
 
 if (page === 'pembayaran') {
     loadAllSiswaOptions();
     loadRiwayatPembayaran();
 
     const now = new Date();
-    document.getElementById('input-bulan').value = now.getMonth() + 1;
-    document.getElementById('input-tahun').value = now.getFullYear();
-    document.getElementById('input-jumlah').value = 3000;
+    const bulanInput = document.getElementById('input-bulan');
+    const tahunInput = document.getElementById('input-tahun');
+    const jumlahInput = document.getElementById('input-jumlah');
+    if (bulanInput) bulanInput.value = now.getMonth() + 1;
+    if (tahunInput) tahunInput.value = now.getFullYear();
+    if (jumlahInput) jumlahInput.value = 3000;
 
     async function loadAllSiswaOptions() {
-        const { data } = await apiFetch('/api/admin/siswa');
-        const sel = document.getElementById('input-siswa');
-        sel.innerHTML = '<option value="">-- Pilih Siswa --</option>' +
-            data.map(s => `<option value="${s.id}">${s.nomor_absen ? `[${escapeHtml(s.nomor_absen)}] ` : ''}${escapeHtml(s.nama)}</option>`).join('');
+        try {
+            const { ok, data } = await apiFetch('/api/admin/siswa');
+            if (!ok || !Array.isArray(data)) return;
+            const sel = document.getElementById('input-siswa');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">-- Pilih Siswa --</option>' +
+                data.map(s => `<option value="${s.id}">${s.nomor_absen ? `[${escapeHtml(s.nomor_absen)}] ` : ''}${escapeHtml(s.nama)}</option>`).join('');
+        } catch (err) {
+            console.error('loadAllSiswaOptions error', err);
+        }
     }
 
     async function loadRiwayatPembayaran() {
-        const { data } = await apiFetch('/api/admin/pembayaran');
         const tbody = document.getElementById('bayar-tbody');
-        if (!data.length) {
-            tbody.innerHTML = '<tr><td colspan="5" class="search-empty">Belum ada catatan pembayaran</td></tr>';
-            return;
+        try {
+            const { ok, data } = await apiFetch('/api/admin/pembayaran');
+            if (!ok || !Array.isArray(data) || !data.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="search-empty">Belum ada catatan pembayaran</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(p => `
+                <tr>
+                    <td>${escapeHtml(p.siswa?.nama || '-')}</td>
+                    <td>${BULAN_FULL[p.bulan]} ${p.tahun}</td>
+                    <td>${formatRupiah(p.jumlah)}</td>
+                    <td>${escapeHtml(formatTanggal(p.tanggal_bayar))}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="hapusPembayaran(${p.id})">Hapus</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            console.error('loadRiwayatPembayaran error', err);
+            tbody.innerHTML = '<tr><td colspan="5" class="search-empty">Gagal memuat catatan pembayaran</td></tr>';
         }
-        tbody.innerHTML = data.map(p => `
-            <tr>
-                <td>${escapeHtml(p.siswa?.nama || '-')}</td>
-                <td>${BULAN_FULL[p.bulan]} ${p.tahun}</td>
-                <td>${formatRupiah(p.jumlah)}</td>
-                <td>${escapeHtml(formatTanggal(p.tanggal_bayar))}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm" onclick="hapusPembayaran(${p.id})">Hapus</button>
-                </td>
-            </tr>
-        `).join('');
     }
 
     window.hapusPembayaran = async function (id) {
@@ -331,19 +362,22 @@ if (page === 'pembayaran') {
         if (ok) loadRiwayatPembayaran();
     };
 
-    document.getElementById('form-pembayaran').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const payload = {
-            siswa_id: document.getElementById('input-siswa').value,
-            bulan: document.getElementById('input-bulan').value,
-            tahun: document.getElementById('input-tahun').value,
-            jumlah: document.getElementById('input-jumlah').value,
-            keterangan: document.getElementById('input-ket-bayar').value
-        };
-        const { ok, data } = await postJSON('/api/admin/pembayaran', payload);
-        showToast(data.message, ok ? 'success' : 'error');
-        if (ok) { this.reset(); loadRiwayatPembayaran(); loadAllSiswaOptions(); }
-    });
+    const formBayar = document.getElementById('form-pembayaran');
+    if (formBayar) {
+        formBayar.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const payload = {
+                siswa_id: document.getElementById('input-siswa').value,
+                bulan: document.getElementById('input-bulan').value,
+                tahun: document.getElementById('input-tahun').value,
+                jumlah: document.getElementById('input-jumlah').value,
+                keterangan: document.getElementById('input-ket-bayar').value
+            };
+            const { ok, data } = await postJSON('/api/admin/pembayaran', payload);
+            showToast(data.message, ok ? 'success' : 'error');
+            if (ok) { this.reset(); loadRiwayatPembayaran(); loadAllSiswaOptions(); }
+        });
+    }
 }
 
 
@@ -360,22 +394,27 @@ if (page === 'transaksi') {
     });
 
     async function loadTransaksi() {
-        const { data } = await apiFetch('/api/admin/transaksi');
         const tbody = document.getElementById('trx-tbody');
-        if (!data.length) {
-            tbody.innerHTML = '<tr><td colspan="4" class="search-empty">Belum ada transaksi</td></tr>';
-            return;
+        try {
+            const { ok, data } = await apiFetch('/api/admin/transaksi');
+            if (!ok || !Array.isArray(data) || !data.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="search-empty">Belum ada transaksi</td></tr>';
+                return;
+            }
+            tbody.innerHTML = data.map(t => `
+                <tr>
+                    <td><span class="badge ${t.tipe === 'pemasukan' ? 'badge-success' : 'badge-danger'}">${t.tipe}</span></td>
+                    <td>${escapeHtml(t.keterangan)}</td>
+                    <td>${formatRupiah(t.jumlah)}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="hapusTrx(${t.id})">Hapus</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (err) {
+            console.error('loadTransaksi error', err);
+            tbody.innerHTML = '<tr><td colspan="4" class="search-empty">Gagal memuat transaksi</td></tr>';
         }
-        tbody.innerHTML = data.map(t => `
-            <tr>
-                <td><span class="badge ${t.tipe === 'pemasukan' ? 'badge-success' : 'badge-danger'}">${t.tipe}</span></td>
-                <td>${escapeHtml(t.keterangan)}</td>
-                <td>${formatRupiah(t.jumlah)}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm" onclick="hapusTrx(${t.id})">Hapus</button>
-                </td>
-            </tr>
-        `).join('');
     }
 
     window.hapusTrx = async function (id) {
@@ -386,21 +425,25 @@ if (page === 'transaksi') {
     };
 
     ['form-masuk', 'form-keluar'].forEach(formId => {
-        document.getElementById(formId).addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const tipe = formId === 'form-masuk' ? 'pemasukan' : 'pengeluaran';
-            const suffix = formId === 'form-masuk' ? 'masuk' : 'keluar';
-            const payload = {
-                tipe,
-                jumlah: document.getElementById(`jumlah-${suffix}`).value,
-                keterangan: document.getElementById(`ket-${suffix}`).value
-            };
-            const { ok, data } = await postJSON('/api/admin/transaksi', payload);
-            showToast(data.message, ok ? 'success' : 'error');
-            if (ok) { this.reset(); loadTransaksi(); }
-        });
+        const formEl = document.getElementById(formId);
+        if (formEl) {
+            formEl.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const tipe = formId === 'form-masuk' ? 'pemasukan' : 'pengeluaran';
+                const suffix = formId === 'form-masuk' ? 'masuk' : 'keluar';
+                const payload = {
+                    tipe,
+                    jumlah: document.getElementById(`jumlah-${suffix}`).value,
+                    keterangan: document.getElementById(`ket-${suffix}`).value
+                };
+                const { ok, data } = await postJSON('/api/admin/transaksi', payload);
+                showToast(data.message, ok ? 'success' : 'error');
+                if (ok) { this.reset(); loadTransaksi(); }
+            });
+        }
     });
 }
+
 
 if (page === 'riwayat') {
     loadRiwayatPengeluaran();
@@ -427,6 +470,7 @@ if (page === 'riwayat') {
                 </tr>
             `).join('');
         } catch (err) {
+            console.error('loadRiwayatPengeluaran error', err);
             tbody.innerHTML = '<tr><td colspan="3" class="search-empty">Gagal memuat data pengeluaran</td></tr>';
         }
     }
