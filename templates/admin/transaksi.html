@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transaksi Kas — Kas Kelas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body data-page="transaksi">
 
     <nav class="admin-nav">
@@ -40,11 +42,13 @@
                         <div class="form-grid-2">
                             <div class="input-group">
                                 <label class="input-label" for="ket-masuk">Keterangan</label>
-                                <input type="text" class="input" id="ket-masuk" placeholder="Misal: Sumbangan wali murid..." required>
+                                <input type="text" class="input" id="ket-masuk"
+                                    placeholder="Misal: Sumbangan wali murid..." required>
                             </div>
                             <div class="input-group">
                                 <label class="input-label" for="jumlah-masuk">Jumlah (Rp)</label>
-                                <input type="number" class="input" id="jumlah-masuk" min="1000" step="1000" placeholder="0" required>
+                                <input type="number" class="input" id="jumlah-masuk" min="1000" step="1000"
+                                    placeholder="0" required>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Tambah Pemasukan</button>
@@ -56,11 +60,13 @@
                         <div class="form-grid-2">
                             <div class="input-group">
                                 <label class="input-label" for="ket-keluar">Keterangan</label>
-                                <input type="text" class="input" id="ket-keluar" placeholder="Misal: Beli ATK, acara kelas..." required>
+                                <input type="text" class="input" id="ket-keluar"
+                                    placeholder="Misal: Beli ATK, acara kelas..." required>
                             </div>
                             <div class="input-group">
                                 <label class="input-label" for="jumlah-keluar">Jumlah (Rp)</label>
-                                <input type="number" class="input" id="jumlah-keluar" min="1000" step="1000" placeholder="0" required>
+                                <input type="number" class="input" id="jumlah-keluar" min="1000" step="1000"
+                                    placeholder="0" required>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-danger">Tambah Pengeluaran</button>
@@ -81,7 +87,9 @@
                             </tr>
                         </thead>
                         <tbody id="trx-tbody">
-                            <tr><td colspan="4" class="loading">Memuat...</td></tr>
+                            <tr>
+                                <td colspan="4" class="loading">Memuat...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -93,4 +101,5 @@
     <div class="toast" id="toast"></div>
     <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
+
 </html>
